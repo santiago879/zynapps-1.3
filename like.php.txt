@@ -1,0 +1,29 @@
+<?php
+session_start();
+require_once "includes/functions.php";
+if (!currentUser()) { header("Location: login.php"); exit; }
+$current = currentUser();
+
+function readJSON(string $p){ if(!file_exists($p)) return []; $d=json_decode(file_get_contents($p),true); return is_array($d)?$d:[]; }
+function writeJSON(string $p,$d){ if(!is_dir(dirname($p))) mkdir(dirname($p),0755,true); file_put_contents($p,json_encode($d,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)); }
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: index.php");
+    exit;
+}
+
+$post_id = $_POST['post_id'] ?? '';
+if ($post_id === '') { header("Location: index.php"); exit; }
+
+$likes = readJSON('data/likes.json'); // format: [ post_id => [user1,user2], ... ]
+if (!isset($likes[$post_id])) $likes[$post_id] = [];
+
+if (in_array($current, $likes[$post_id], true)) {
+    // quitar
+    $likes[$post_id] = array_values(array_filter($likes[$post_id], fn($u)=>$u!==$current));
+} else {
+    $likes[$post_id][] = $current;
+}
+writeJSON('data/likes.json', $likes);
+header("Location: index.php");
+exit;

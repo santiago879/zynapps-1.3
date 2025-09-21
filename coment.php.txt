@@ -1,0 +1,29 @@
+<?php
+session_start();
+require_once "includes/functions.php";
+if (!currentUser()) { header("Location: login.php"); exit; }
+$current = currentUser();
+
+function readJSON(string $p){ if(!file_exists($p)) return []; $d=json_decode(file_get_contents($p),true); return is_array($d)?$d:[]; }
+function writeJSON(string $p,$d){ if(!is_dir(dirname($p))) mkdir(dirname($p),0755,true); file_put_contents($p,json_encode($d,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)); }
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header("Location: index.php"); exit; }
+
+$post_id = $_POST['post_id'] ?? '';
+$text = trim($_POST['text'] ?? '');
+$user = $_POST['user'] ?? $current;
+
+if ($post_id === '' || $text === '') { header("Location: index.php"); exit; }
+
+$comments = readJSON('data/comments.json');
+$comment = [
+    'id' => 'c'.time().bin2hex(random_bytes(4)),
+    'post_id' => $post_id,
+    'user' => $user,
+    'text' => $text,
+    'timestamp' => time()
+];
+$comments[] = $comment;
+writeJSON('data/comments.json', $comments);
+header("Location: index.php");
+exit;
